@@ -1,4 +1,5 @@
 import { FloatingHUD } from "./components/FloatingHUD";
+import { MediaLibrary } from "./components/MediaLibrary";
 import "./App.css";
 
 function App() {
@@ -11,10 +12,10 @@ function App() {
         </p>
       </header>
 
-      <main className="w-full max-w-4xl grid grid-cols-1 md:grid-cols-2 gap-8 mb-24">
-        {/* Placeholder for Media Library */}
-        <div className="bg-gray-800 rounded-xl p-8 border border-gray-700 flex items-center justify-center min-h-[300px]">
-          <span className="text-gray-500">Media Library Empty</span>
+      <main className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-8 mb-24">
+        {/* Media Library component */}
+        <div className="min-h-[300px]">
+          <MediaLibrary />
         </div>
         <div className="bg-gray-800 rounded-xl p-8 border border-gray-700 flex flex-col items-start justify-center min-h-[300px]">
           <h2 className="text-xl font-semibold mb-2">Session Info</h2>
