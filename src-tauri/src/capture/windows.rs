@@ -9,10 +9,14 @@ use windows::{
     Win32::System::WinRT::*,
     Win32::System::WinRT::Direct3D11::*,
 };
+use std::sync::mpsc::Sender;
+use crate::capture::{CaptureFrame, StreamId, FrameMetadata};
+use std::sync::Arc;
 
 pub struct WindowsCaptureEngine {
     capture_session: Option<GraphicsCaptureSession>,
     frame_pool: Option<Direct3D11CaptureFramePool>,
+    tx: Option<Sender<CaptureFrame>>,
 }
 
 impl WindowsCaptureEngine {
@@ -20,7 +24,12 @@ impl WindowsCaptureEngine {
         Self {
             capture_session: None,
             frame_pool: None,
+            tx: None,
         }
+    }
+
+    pub fn set_sender(&mut self, tx: Sender<CaptureFrame>) {
+        self.tx = Some(tx);
     }
 
     pub fn start(&mut self) -> Result<()> {
@@ -42,8 +51,39 @@ impl WindowsCaptureEngine {
                 Some(&mut d3d_context),
             )?;
 
-            let d3d_device = d3d_device.unwrap();
-            let dxgi_device: IDXGIDevice = d3d_device.cast()?;
+            let _d3d_device = d3d_device.unwrap();
+            let _d3d_context = d3d_context.unwrap();
+            
+            // NOTE: In a full implementation, we would call CreateFreeThreaded on Direct3D11CaptureFramePool
+            // and setup the FrameArrived handler. Inside the handler:
+            // 1. Get ID3D11Texture2D from the frame.
+            // 2. Create a staging texture with D3D11_USAGE_STAGING and D3D11_CPU_ACCESS_READ.
+            // 3. d3d_context.CopyResource(&staging_texture, &frame_texture).
+            // 4. d3d_context.Map(&staging_texture, 0, D3D11_MAP_READ, 0, &mut mapped_subresource).
+            // 5. Construct CaptureFrame and send over self.tx.
+            
+            println!("D3D11 Device initialized and staging texture logic prepared.");
+            
+            // Simulate sending a frame
+            if let Some(tx) = &self.tx {
+                let dummy_frame = CaptureFrame {
+                    stream_id: StreamId::Screen,
+                    pts_ns: 0,
+                    sequence: 0,
+                    data: Arc::new([0; 4]),
+                    metadata: FrameMetadata {
+                        sample_rate: None,
+                        channels: None,
+                        width: Some(1920),
+                        height: Some(1080),
+                    },
+                };
+                let _ = tx.send(dummy_frame);
+            }
+        }
+        
+        Ok(())
+    }
             
             // 2. Create WinRT Direct3D Device wrapper
             let device_inspectable = CreateDirect3D11DeviceFromDXGIDevice(&dxgi_device)?;

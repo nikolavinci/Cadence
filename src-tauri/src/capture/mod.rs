@@ -1,6 +1,7 @@
-pub mod windows;
-
 use std::sync::Arc;
+use std::sync::mpsc::{Sender, Receiver, channel};
+
+pub mod windows;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
 pub enum StreamId {
@@ -25,4 +26,16 @@ pub struct CaptureFrame {
     pub sequence: u64,
     pub data: Arc<[u8]>,
     pub metadata: FrameMetadata,
+}
+
+pub struct CapturePipeline {
+    pub tx: Sender<CaptureFrame>,
+    pub rx: Receiver<CaptureFrame>,
+}
+
+impl CapturePipeline {
+    pub fn new() -> Self {
+        let (tx, rx) = channel();
+        Self { tx, rx }
+    }
 }

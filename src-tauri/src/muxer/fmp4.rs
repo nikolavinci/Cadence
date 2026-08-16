@@ -1,5 +1,7 @@
 use std::fs::File;
 use std::io::{self, Write};
+use std::sync::mpsc::Receiver;
+use std::thread;
 use crate::capture::CaptureFrame;
 
 pub struct FragmentedMp4Writer {
@@ -12,11 +14,24 @@ pub struct FragmentedMp4Writer {
 impl FragmentedMp4Writer {
     pub fn new(segment_duration_ms: u32) -> Self {
         Self {
-            file: None, // Set when starting recording
+            file: None,
             buffer: Vec::with_capacity(4 * 1024 * 1024),
             segment_duration_ms,
             frame_count: 0,
         }
+    }
+
+    pub fn start_muxer_thread(mut self, rx: Receiver<CaptureFrame>) {
+        thread::spawn(move || {
+            println!("Muxer thread started, waiting for frames...");
+            while let Ok(frame) = rx.recv() {
+                if let Err(e) = self.write_frame(&frame) {
+                    eprintln!("Error writing frame: {}", e);
+                    break;
+                }
+            }
+            println!("Muxer thread stopped.");
+        });
     }
 
     pub fn write_frame(&mut self, _frame: &CaptureFrame) -> io::Result<()> {
