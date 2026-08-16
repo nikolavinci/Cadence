@@ -85,19 +85,6 @@ impl WindowsCaptureEngine {
         Ok(())
     }
             
-            // 2. Create WinRT Direct3D Device wrapper
-            let device_inspectable = CreateDirect3D11DeviceFromDXGIDevice(&dxgi_device)?;
-            let winrt_device: IDirect3DDevice = device_inspectable.cast()?;
-
-            println!("D3D11 device initialized. Capture would start here.");
-            
-            // TODO: Obtain GraphicsCaptureItem for a monitor or window
-            // and instantiate Direct3D11CaptureFramePool
-        }
-        
-        Ok(())
-    }
-
     pub fn stop(&mut self) {
         if let Some(session) = self.capture_session.take() {
             let _ = session.Close();
