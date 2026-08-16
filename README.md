@@ -1,2 +1,7 @@
-# Cadence
-The private, high-performance screen and camera recorder built for coaches and consultants to deliver polished client walkthroughs, demos, and deep dives—with zero time limits and 100% offline security
+# Tauri + React + Typescript
+
+This template should help get you started developing with Tauri, React and Typescript in Vite.
+
+## Recommended IDE Setup
+
+- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
