@@ -14,11 +14,13 @@ use windows::{
 };
 use std::sync::mpsc::Sender;
 use crate::capture::{CaptureFrame, StreamId, FrameMetadata};
+use crate::capture::encoder::MfH264Encoder;
 use std::sync::Arc;
 
 pub struct WindowsCaptureEngine {
     capture_session: Option<GraphicsCaptureSession>,
     frame_pool: Option<Direct3D11CaptureFramePool>,
+    encoder: Option<MfH264Encoder>,
     tx: Option<Sender<CaptureFrame>>,
 }
 
@@ -27,6 +29,7 @@ impl WindowsCaptureEngine {
         Self {
             capture_session: None,
             frame_pool: None,
+            encoder: None,
             tx: None,
         }
     }
@@ -86,6 +89,9 @@ impl WindowsCaptureEngine {
             let session = frame_pool.CreateCaptureSession(&capture_item)?;
             session.StartCapture()?;
 
+            let mut encoder = MfH264Encoder::new()?;
+            println!("H.264 Media Foundation Encoder Initialized");
+
             self.frame_pool = Some(frame_pool);
             self.capture_session = Some(session);
 
@@ -93,11 +99,12 @@ impl WindowsCaptureEngine {
             
             // Simulate sending an initial frame for the walkthrough
             if let Some(tx) = &self.tx {
+                let compressed_bytes = encoder.encode_frame(&[0; 4]);
                 let dummy_frame = CaptureFrame {
                     stream_id: StreamId::Screen,
                     pts_ns: 0,
                     sequence: 0,
-                    data: Arc::new([0; 4]),
+                    data: Arc::from(compressed_bytes.into_boxed_slice()),
                     metadata: FrameMetadata {
                         sample_rate: None,
                         channels: None,
@@ -107,6 +114,8 @@ impl WindowsCaptureEngine {
                 };
                 let _ = tx.send(dummy_frame);
             }
+            
+            self.encoder = Some(encoder);
         }
         
         Ok(())
