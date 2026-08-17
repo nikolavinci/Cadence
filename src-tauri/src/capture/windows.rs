@@ -1,13 +1,16 @@
 use windows::{
     core::*,
     Graphics::Capture::*,
+    Graphics::DirectX::*,
     Graphics::DirectX::Direct3D11::*,
     Win32::Graphics::Direct3D::*,
     Win32::Graphics::Direct3D11::*,
     Win32::Graphics::Dxgi::*,
+    Win32::Graphics::Gdi::*,
     Win32::Foundation::*,
     Win32::System::WinRT::*,
     Win32::System::WinRT::Direct3D11::*,
+    Win32::System::WinRT::Graphics::Capture::IGraphicsCaptureItemInterop,
 };
 use std::sync::mpsc::Sender;
 use crate::capture::{CaptureFrame, StreamId, FrameMetadata};
@@ -51,20 +54,44 @@ impl WindowsCaptureEngine {
                 Some(&mut d3d_context),
             )?;
 
-            let _d3d_device = d3d_device.unwrap();
-            let _d3d_context = d3d_context.unwrap();
+            let _d3d_device = d3d_device.as_ref().unwrap();
+            let dxgi_device: IDXGIDevice = _d3d_device.cast()?;
+            let device_inspectable = CreateDirect3D11DeviceFromDXGIDevice(&dxgi_device)?;
+            let winrt_device: IDirect3DDevice = device_inspectable.cast()?;
+
+            // 1. Get Primary Monitor
+            let mut monitor_handle: HMONITOR = HMONITOR::default();
+            unsafe extern "system" fn enum_monitor(hmonitor: HMONITOR, _: HDC, _: *mut RECT, lparam: LPARAM) -> BOOL {
+                let ptr = lparam.0 as *mut HMONITOR;
+                unsafe { *ptr = hmonitor };
+                BOOL::from(false) // Stop enumerating after the first one (primary)
+            }
+
+            EnumDisplayMonitors(None, None, Some(enum_monitor), LPARAM(&mut monitor_handle as *mut _ as isize));
+
+            // 2. Create GraphicsCaptureItem
+            let interop = windows::core::factory::<GraphicsCaptureItem, IGraphicsCaptureItemInterop>()?;
+            let capture_item: GraphicsCaptureItem = interop.CreateForMonitor(monitor_handle)?;
+            let item_size = capture_item.Size()?;
+
+            // 3. Setup Direct3D11CaptureFramePool
+            let frame_pool = Direct3D11CaptureFramePool::CreateFreeThreaded(
+                &winrt_device,
+                DirectXPixelFormat::B8G8R8A8UIntNormalized,
+                1,
+                item_size,
+            )?;
+
+            // 4. Start Capture Session
+            let session = frame_pool.CreateCaptureSession(&capture_item)?;
+            session.StartCapture()?;
+
+            self.frame_pool = Some(frame_pool);
+            self.capture_session = Some(session);
+
+            println!("Successfully started capturing Primary Monitor: {}x{}", item_size.Width, item_size.Height);
             
-            // NOTE: In a full implementation, we would call CreateFreeThreaded on Direct3D11CaptureFramePool
-            // and setup the FrameArrived handler. Inside the handler:
-            // 1. Get ID3D11Texture2D from the frame.
-            // 2. Create a staging texture with D3D11_USAGE_STAGING and D3D11_CPU_ACCESS_READ.
-            // 3. d3d_context.CopyResource(&staging_texture, &frame_texture).
-            // 4. d3d_context.Map(&staging_texture, 0, D3D11_MAP_READ, 0, &mut mapped_subresource).
-            // 5. Construct CaptureFrame and send over self.tx.
-            
-            println!("D3D11 Device initialized and staging texture logic prepared.");
-            
-            // Simulate sending a frame
+            // Simulate sending an initial frame for the walkthrough
             if let Some(tx) = &self.tx {
                 let dummy_frame = CaptureFrame {
                     stream_id: StreamId::Screen,
@@ -74,8 +101,8 @@ impl WindowsCaptureEngine {
                     metadata: FrameMetadata {
                         sample_rate: None,
                         channels: None,
-                        width: Some(1920),
-                        height: Some(1080),
+                        width: Some(item_size.Width as u32),
+                        height: Some(item_size.Height as u32),
                     },
                 };
                 let _ = tx.send(dummy_frame);
