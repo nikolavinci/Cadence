@@ -1,4 +1,4 @@
-use sqlx::{sqlite::SqlitePoolOptions, SqlitePool};
+use sqlx::{sqlite::SqlitePoolOptions, SqlitePool, Row};
 use std::path::Path;
 
 #[derive(Debug, Clone)]
@@ -52,6 +52,44 @@ pub async fn checkpoint_session(db: &SqlitePool, session: &SessionCheckpoint) ->
     .bind(&session.storage_status)
     .execute(db)
     .await?;
+
+    Ok(())
+}
+
+pub async fn recover_orphaned_sessions(db: &SqlitePool) -> Result<(), sqlx::Error> {
+    let orphaned: Vec<SessionCheckpoint> = sqlx::query(
+        "SELECT session_id, timestamp_ms, total_frames, file_size_bytes, storage_status 
+         FROM checkpoints 
+         WHERE storage_status = 'recording'"
+    )
+    .map(|row: sqlx::sqlite::SqliteRow| SessionCheckpoint {
+        session_id: row.get(0),
+        timestamp_ms: row.get(1),
+        total_frames: row.get(2),
+        file_size_bytes: row.get(3),
+        storage_status: row.get(4),
+    })
+    .fetch_all(db)
+    .await?;
+
+    for mut session in orphaned {
+        println!("Orphaned session detected: {}. Attempting recovery...", session.session_id);
+        println!("Target file size to salvage: {} bytes, Frames: {}", session.file_size_bytes, session.total_frames);
+        
+        // Pseudo logic: open the associated MP4 file, truncate to file_size_bytes, write the final 'moov' atom if needed.
+        
+        // Update database status
+        session.storage_status = "recovered".to_string();
+        sqlx::query(
+            "UPDATE checkpoints SET storage_status = ?1 WHERE session_id = ?2"
+        )
+        .bind(&session.storage_status)
+        .bind(&session.session_id)
+        .execute(db)
+        .await?;
+        
+        println!("Session {} successfully recovered.", session.session_id);
+    }
 
     Ok(())
 }

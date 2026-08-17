@@ -3,9 +3,11 @@ pub mod muxer;
 pub mod commands;
 
 use std::sync::Mutex;
+
 use capture::windows::WindowsCaptureEngine;
 use capture::CapturePipeline;
 use muxer::fmp4::FragmentedMp4Writer;
+use crate::muxer::checkpoint::{init_db, recover_orphaned_sessions};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
@@ -23,8 +25,15 @@ pub fn run() {
             std::fs::create_dir_all(&app_dir).unwrap();
             let db_path = app_dir.join("session_state.sqlite");
             
-            let db_pool = tauri::async_runtime::block_on(async {
-                muxer::checkpoint::init_db(&db_path).await.expect("Failed to init SQLite")
+            tauri::async_runtime::block_on(async {
+                let pool = init_db(&db_path).await.expect("Failed to initialize SQLite DB");
+                
+                // Phase 3.5: Attempt to recover any abruptly terminated sessions
+                if let Err(e) = recover_orphaned_sessions(&pool).await {
+                    eprintln!("Failed to recover orphaned sessions: {}", e);
+                }
+                
+                app.manage(pool);
             });
 
             let pipeline = CapturePipeline::new();
@@ -33,6 +42,7 @@ pub fn run() {
             
             let muxer = FragmentedMp4Writer::new(2000);
             let session_id = format!("session_{}", chrono::Utc::now().timestamp_millis());
+            let db_pool = app.state::<sqlx::SqlitePool>().inner().clone();
             muxer.start_muxer_thread(pipeline.rx, db_pool, session_id);
             
             app.manage(commands::AppState {
