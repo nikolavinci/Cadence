@@ -6,8 +6,8 @@ interface AudioLevels {
   system: number;
 }
 
-export const FloatingHUD: React.FC<{ onOpenLibrary?: () => void }> = ({ onOpenLibrary }) => {
-  const [isRecording, setIsRecording] = useState(false);
+export const FloatingHUD: React.FC<{ onOpenLibrary?: () => void; onStop?: () => void }> = ({ onOpenLibrary, onStop }) => {
+  const [isRecording, setIsRecording] = useState(true);
   const [elapsed, setElapsed] = useState(0);
   const [audioLevels, setAudioLevels] = useState<AudioLevels>({ mic: 0, system: 0 });
 
@@ -29,12 +29,13 @@ export const FloatingHUD: React.FC<{ onOpenLibrary?: () => void }> = ({ onOpenLi
     if (isRecording) {
       await invoke("stop_recording");
       setIsRecording(false);
+      if (onStop) onStop();
     } else {
       await invoke("start_recording");
       setElapsed(0);
       setIsRecording(true);
     }
-  }, [isRecording]);
+  }, [isRecording, onStop]);
 
   const formatTime = (seconds: number) => {
     const mins = Math.floor(seconds / 60);

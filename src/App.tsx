@@ -2,21 +2,31 @@ import { useState } from "react";
 import { FloatingHUD } from "./components/FloatingHUD";
 import { MediaLibrary } from "./components/MediaLibrary";
 import CameraPiP from "./components/CameraPiP";
+import { PreRecordingConfig } from "./components/PreRecordingConfig";
 import "./App.css";
 
 function App() {
   const [showLibrary, setShowLibrary] = useState(false);
+  const [appState, setAppState] = useState<"config" | "recording">("config");
 
   return (
     <div className="w-screen h-screen bg-transparent overflow-hidden pointer-events-none relative flex items-center justify-center">
-      {/* Pointer events are re-enabled on children so the rest of the window stays click-through */}
-      <div className="pointer-events-auto absolute top-4 left-4">
-        <FloatingHUD onOpenLibrary={() => setShowLibrary(true)} />
-      </div>
       
-      <div className="pointer-events-auto">
-        <CameraPiP />
-      </div>
+      {appState === "config" ? (
+        <div className="pointer-events-auto">
+          <PreRecordingConfig onStart={() => setAppState("recording")} />
+        </div>
+      ) : (
+        <>
+          <div className="pointer-events-auto absolute top-4 left-4">
+            <FloatingHUD onOpenLibrary={() => setShowLibrary(true)} onStop={() => setAppState("config")} />
+          </div>
+          
+          <div className="pointer-events-auto">
+            <CameraPiP />
+          </div>
+        </>
+      )}
 
       {showLibrary && (
         <div className="pointer-events-auto absolute inset-0 z-50 flex items-center justify-center bg-black/50 p-8">
