@@ -56,7 +56,8 @@ pub fn run() {
         .invoke_handler(tauri::generate_handler![
             greet,
             commands::start_recording,
-            commands::stop_recording
+            commands::stop_recording,
+            commands::download_whisper_model
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
