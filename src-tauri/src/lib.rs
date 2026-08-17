@@ -1,6 +1,7 @@
 pub mod capture;
 pub mod muxer;
 pub mod commands;
+pub mod ai;
 
 use std::sync::Mutex;
 

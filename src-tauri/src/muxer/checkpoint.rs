@@ -27,7 +27,14 @@ pub async fn init_db(db_path: &Path) -> Result<SqlitePool, sqlx::Error> {
             total_frames INTEGER NOT NULL,
             file_size_bytes INTEGER NOT NULL,
             storage_status TEXT NOT NULL
-        )"
+        );
+        CREATE TABLE IF NOT EXISTS transcripts (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            session_id TEXT NOT NULL,
+            start_time INTEGER NOT NULL,
+            end_time INTEGER NOT NULL,
+            text TEXT NOT NULL
+        );"
     )
     .execute(&pool)
     .await?;
