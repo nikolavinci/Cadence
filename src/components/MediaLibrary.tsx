@@ -15,7 +15,7 @@ const DUMMY_SESSIONS: SessionRecord[] = [
 ];
 
 export const MediaLibrary: React.FC = () => {
-  const [sessions, setSessions] = useState<SessionRecord[]>(DUMMY_SESSIONS);
+  const [sessions] = useState<SessionRecord[]>(DUMMY_SESSIONS);
   const [searchTerm, setSearchTerm] = useState("");
 
   const filteredSessions = useMemo(() => {

@@ -1,34 +1,36 @@
+import { useState } from "react";
 import { FloatingHUD } from "./components/FloatingHUD";
 import { MediaLibrary } from "./components/MediaLibrary";
+import CameraPiP from "./components/CameraPiP";
 import "./App.css";
 
 function App() {
+  const [showLibrary, setShowLibrary] = useState(false);
+
   return (
-    <div className="min-h-screen bg-gray-900 flex flex-col items-center justify-center p-8 text-white relative">
-      <header className="mb-12 text-center">
-        <h1 className="text-4xl font-bold mb-4">Core-Recorder v2.0</h1>
-        <p className="text-gray-400 max-w-lg">
-          Zero-cloud, local-first desktop recording application for screencast creators and technical coaches.
-        </p>
-      </header>
+    <div className="w-screen h-screen bg-transparent overflow-hidden pointer-events-none relative flex items-center justify-center">
+      {/* Pointer events are re-enabled on children so the rest of the window stays click-through */}
+      <div className="pointer-events-auto absolute top-4 left-4">
+        <FloatingHUD onOpenLibrary={() => setShowLibrary(true)} />
+      </div>
+      
+      <div className="pointer-events-auto">
+        <CameraPiP />
+      </div>
 
-      <main className="w-full max-w-5xl grid grid-cols-1 md:grid-cols-2 gap-8 mb-24">
-        {/* Media Library component */}
-        <div className="min-h-[300px]">
-          <MediaLibrary />
+      {showLibrary && (
+        <div className="pointer-events-auto absolute inset-0 z-50 flex items-center justify-center bg-black/50 p-8">
+          <div className="bg-[#0f0f13] w-full max-w-4xl h-[80vh] rounded-2xl shadow-2xl overflow-hidden flex flex-col relative border border-slate-800">
+            <button 
+              onClick={() => setShowLibrary(false)}
+              className="absolute top-4 right-4 z-10 p-2 bg-slate-800 hover:bg-slate-700 rounded-full text-white transition-colors"
+            >
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M18 6 6 18"/><path d="m6 6 12 12"/></svg>
+            </button>
+            <MediaLibrary />
+          </div>
         </div>
-        <div className="bg-gray-800 rounded-xl p-8 border border-gray-700 flex flex-col items-start justify-center min-h-[300px]">
-          <h2 className="text-xl font-semibold mb-2">Session Info</h2>
-          <ul className="text-sm text-gray-400 space-y-2">
-            <li>• Codec: H.264 / AAC</li>
-            <li>• FPS: 60</li>
-            <li>• Storage: Fragmented MP4</li>
-          </ul>
-        </div>
-      </main>
-
-      {/* The Floating HUD overlay */}
-      <FloatingHUD />
+      )}
     </div>
   );
 }

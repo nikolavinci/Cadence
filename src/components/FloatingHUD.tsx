@@ -1,13 +1,12 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { invoke } from "@tauri-apps/api/core";
-import { listen } from "@tauri-apps/api/event";
 
 interface AudioLevels {
   mic: number;
   system: number;
 }
 
-export const FloatingHUD: React.FC = () => {
+export const FloatingHUD: React.FC<{ onOpenLibrary?: () => void }> = ({ onOpenLibrary }) => {
   const [isRecording, setIsRecording] = useState(false);
   const [elapsed, setElapsed] = useState(0);
   const [audioLevels, setAudioLevels] = useState<AudioLevels>({ mic: 0, system: 0 });
@@ -46,8 +45,13 @@ export const FloatingHUD: React.FC = () => {
   return (
     <div className="fixed bottom-6 left-1/2 transform -translate-x-1/2 z-50 bg-black/80 rounded-lg px-6 py-3 text-white shadow-2xl backdrop-blur-md flex flex-col items-center">
       {/* Timer */}
-      <div className="text-xl font-mono mb-2 tracking-wider">
+      <div className="text-xl font-mono mb-2 tracking-wider flex items-center gap-4">
         {formatTime(elapsed)}
+        {onOpenLibrary && (
+          <button onClick={onOpenLibrary} className="p-1 hover:bg-white/20 rounded">
+            📁
+          </button>
+        )}
       </div>
 
       {/* Audio Level Meters */}
