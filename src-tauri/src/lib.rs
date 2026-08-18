@@ -6,8 +6,10 @@ pub mod ai;
 use std::sync::Mutex;
 
 use capture::windows::WindowsCaptureEngine;
+use capture::audio::AudioCaptureEngine;
 use capture::CapturePipeline;
 use muxer::fmp4::FragmentedMp4Writer;
+use ai::transcriber::WhisperEngine;
 use crate::muxer::checkpoint::{init_db, recover_orphaned_sessions};
 
 // Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
@@ -44,10 +46,21 @@ pub fn run() {
             let muxer = FragmentedMp4Writer::new(2000);
             let session_id = format!("session_{}", chrono::Utc::now().timestamp_millis());
             let db_pool = app.state::<sqlx::SqlitePool>().inner().clone();
+            
+            // Whisper AI Engine
+            let (whisper_tx, whisper_rx) = std::sync::mpsc::channel();
+            if let Ok(whisper) = WhisperEngine::new(&app_dir.join("ggml-tiny.en.bin")) {
+                whisper.start_transcription_thread(whisper_rx, db_pool.clone(), session_id.clone());
+            } else {
+                println!("Whisper model not found, AI transcription disabled until downloaded.");
+            }
+            
             muxer.start_muxer_thread(pipeline.rx, db_pool, session_id);
             
             app.manage(commands::AppState {
                 capture_engine: Mutex::new(engine),
+                audio_engine: Mutex::new(AudioCaptureEngine::new()),
+                whisper_tx: Mutex::new(Some(whisper_tx)),
             });
 
             Ok(())

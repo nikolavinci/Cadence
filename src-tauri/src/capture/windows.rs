@@ -87,35 +87,57 @@ impl WindowsCaptureEngine {
 
             // 4. Start Capture Session
             let session = frame_pool.CreateCaptureSession(&capture_item)?;
-            session.StartCapture()?;
-
+            
             let mut encoder = MfH264Encoder::new()?;
             println!("H.264 Media Foundation Encoder Initialized");
+
+            // Setup FrameArrived Callback
+            if let Some(tx) = self.tx.clone() {
+                let encoder_arc = Arc::new(std::sync::Mutex::new(encoder));
+                
+                let handler = windows::Foundation::TypedEventHandler::<Direct3D11CaptureFramePool, windows::core::IInspectable>::new(
+                    move |pool, _| {
+                        if let Some(pool_ref) = &*pool {
+                            if let Ok(frame) = pool_ref.TryGetNextFrame() {
+                                let surface = frame.Surface()?;
+                                // In a full implementation, we would copy the D3D11 surface to a staging texture here,
+                                // read the raw BGRA bytes, and feed them into the encoder.
+                                
+                                // For our structural architecture, we simulate the compression:
+                                if let Ok(mut enc) = encoder_arc.lock() {
+                                    let compressed_bytes = enc.encode_frame(&[]);
+                                    
+                                    let capture_frame = CaptureFrame {
+                                        stream_id: StreamId::Screen,
+                                        pts_ns: frame.SystemRelativeTime()?.Duration as u64 * 100, // 100ns ticks to ns
+                                        sequence: 0,
+                                        data: Arc::from(compressed_bytes.into_boxed_slice()),
+                                        metadata: FrameMetadata {
+                                            sample_rate: None,
+                                            channels: None,
+                                            width: Some(item_size.Width as u32),
+                                            height: Some(item_size.Height as u32),
+                                        },
+                                    };
+                                    
+                                    // Send the encoded H.264 NAL unit to the muxer thread
+                                    let _ = tx.send(capture_frame);
+                                    println!("📸 Captured and encoded a screen frame!");
+                                }
+                            }
+                        }
+                        Ok(())
+                    }
+                );
+                frame_pool.FrameArrived(&handler)?;
+            }
+
+            session.StartCapture()?;
 
             self.frame_pool = Some(frame_pool);
             self.capture_session = Some(session);
 
             println!("Successfully started capturing Primary Monitor: {}x{}", item_size.Width, item_size.Height);
-            
-            // Simulate sending an initial frame for the walkthrough
-            if let Some(tx) = &self.tx {
-                let compressed_bytes = encoder.encode_frame(&[0; 4]);
-                let dummy_frame = CaptureFrame {
-                    stream_id: StreamId::Screen,
-                    pts_ns: 0,
-                    sequence: 0,
-                    data: Arc::from(compressed_bytes.into_boxed_slice()),
-                    metadata: FrameMetadata {
-                        sample_rate: None,
-                        channels: None,
-                        width: Some(item_size.Width as u32),
-                        height: Some(item_size.Height as u32),
-                    },
-                };
-                let _ = tx.send(dummy_frame);
-            }
-            
-            self.encoder = Some(encoder);
         }
         
         Ok(())

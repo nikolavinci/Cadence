@@ -9,13 +9,22 @@ use tauri::Manager;
 
 pub struct AppState {
     pub capture_engine: Mutex<WindowsCaptureEngine>,
+    pub audio_engine: Mutex<crate::capture::audio::AudioCaptureEngine>,
+    pub whisper_tx: Mutex<Option<std::sync::mpsc::Sender<Vec<f32>>>>,
 }
 
 #[tauri::command]
 pub async fn start_recording(state: State<'_, AppState>) -> Result<(), String> {
     println!("Recording started!");
+    
     let mut engine = state.capture_engine.lock().unwrap();
     engine.start().map_err(|e| e.to_string())?;
+    
+    let mut audio_engine = state.audio_engine.lock().unwrap();
+    if let Some(tx) = state.whisper_tx.lock().unwrap().clone() {
+        audio_engine.start(tx)?;
+    }
+    
     Ok(())
 }
 
@@ -24,6 +33,9 @@ pub async fn stop_recording(state: State<'_, AppState>) -> Result<(), String> {
     println!("Recording stopped!");
     let mut engine = state.capture_engine.lock().unwrap();
     engine.stop();
+    
+    let mut audio_engine = state.audio_engine.lock().unwrap();
+    audio_engine.stop();
     Ok(())
 }
 

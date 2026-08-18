@@ -18,11 +18,14 @@ function App() {
         </div>
       ) : (
         <>
-          <div className="pointer-events-auto absolute top-4 left-4">
+          {/* Recording Border Indicator */}
+          <div className="absolute inset-0 border-4 border-red-500/80 animate-pulse pointer-events-none rounded-lg" style={{ boxShadow: "inset 0 0 20px rgba(239, 68, 68, 0.5)" }} />
+          
+          <div className="pointer-events-auto absolute top-4 left-4 z-50">
             <FloatingHUD onOpenLibrary={() => setShowLibrary(true)} onStop={() => setAppState("config")} />
           </div>
           
-          <div className="pointer-events-auto">
+          <div className="pointer-events-auto z-50">
             <CameraPiP />
           </div>
         </>

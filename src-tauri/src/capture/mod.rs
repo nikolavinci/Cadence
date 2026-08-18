@@ -2,6 +2,7 @@ use std::sync::Arc;
 use std::sync::mpsc::{Sender, Receiver, channel};
 
 pub mod windows;
+pub mod audio;
 pub mod encoder;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]

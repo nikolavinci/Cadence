@@ -27,4 +27,5 @@ sqlx = { version = "0.9.0", features = ["sqlite", "runtime-tokio", "tls-rustls"]
 chrono = { version = "0.4.45", features = ["serde"] }
 # whisper-rs = "0.11.1" # Requires LLVM/Clang on Windows
 reqwest = { version = "0.12.5", features = ["stream"] }
+cpal = "0.15.3"
 

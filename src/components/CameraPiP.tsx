@@ -1,10 +1,10 @@
-import { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 export default function CameraPiP() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [position, setPosition] = useState({ x: 20, y: 20 });
   const [isDragging, setIsDragging] = useState(false);
-  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
     async function setupCamera() {
@@ -16,8 +16,9 @@ export default function CameraPiP() {
         if (videoRef.current) {
           videoRef.current.srcObject = stream;
         }
-      } catch (err) {
+      } catch (err: any) {
         console.error("Failed to access camera", err);
+        setErrorMsg(err.toString());
       }
     }
     setupCamera();
@@ -60,13 +61,19 @@ export default function CameraPiP() {
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
     >
-      <video
-        ref={videoRef}
-        autoPlay
-        playsInline
-        muted
-        className="w-full h-full object-cover pointer-events-none"
-      />
+      {errorMsg ? (
+        <div className="w-full h-full bg-slate-900 flex items-center justify-center p-4 text-center">
+          <span className="text-red-400 text-xs">{errorMsg}</span>
+        </div>
+      ) : (
+        <video
+          ref={videoRef}
+          autoPlay
+          playsInline
+          muted
+          className="w-full h-full object-cover pointer-events-none"
+        />
+      )}
     </div>
   );
 }
