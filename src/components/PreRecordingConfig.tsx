@@ -82,6 +82,7 @@ export const PreRecordingConfig: React.FC<{ onStart: () => void }> = ({ onStart 
       >
         Start Recording
       </button>
+      </div>
     </div>
   );
 };

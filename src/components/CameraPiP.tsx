@@ -4,6 +4,7 @@ export default function CameraPiP() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [position, setPosition] = useState({ x: 20, y: 20 });
   const [isDragging, setIsDragging] = useState(false);
+  const [dragOffset, setDragOffset] = useState({ x: 0, y: 0 });
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
