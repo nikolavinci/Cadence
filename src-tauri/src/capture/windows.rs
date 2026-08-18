@@ -89,7 +89,7 @@ impl WindowsCaptureEngine {
             // 4. Start Capture Session
             let session = frame_pool.CreateCaptureSession(&capture_item)?;
             
-            let mut encoder = MfH264Encoder::new()?;
+            let mut encoder = MfH264Encoder::new(item_size.Width as u32, item_size.Height as u32)?;
             println!("H.264 Media Foundation Encoder Initialized");
 
             let mut desc = D3D11_TEXTURE2D_DESC::default();
